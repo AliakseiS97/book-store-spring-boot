@@ -6,7 +6,7 @@ import mate.academy.dto.response.BookDto;
 
 public interface BookService {
 
-    BookDto createBook(CreateBookRequestDto bookDto);
+    BookDto save(CreateBookRequestDto book);
 
     List<BookDto> getAll();
 
