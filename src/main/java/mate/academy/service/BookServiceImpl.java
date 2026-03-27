@@ -2,7 +2,10 @@ package mate.academy.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import mate.academy.model.Book;
+import mate.academy.dto.request.CreateBookRequestDto;
+import mate.academy.dto.response.BookDto;
+import mate.academy.exception.EntityNotFoundException;
+import mate.academy.mapper.BookMapper;
 import mate.academy.repository.BookRepository;
 import org.springframework.stereotype.Service;
 
@@ -11,14 +14,24 @@ import org.springframework.stereotype.Service;
 public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
+    private final BookMapper bookMapper;
 
     @Override
-    public Book save(Book book) {
-        return bookRepository.save(book);
+    public BookDto save(CreateBookRequestDto requestDto) {
+        return bookMapper.toDto(bookRepository.save(bookMapper.toModel(requestDto)));
     }
 
     @Override
-    public List<Book> findAll() {
-        return bookRepository.findAll();
+    public List<BookDto> getAll() {
+        return bookRepository.findAll().stream()
+                .map(bookMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public BookDto getBookById(Long id) {
+        return bookMapper.toDto(bookRepository.findById(id)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Book not found with id: " + id)));
     }
 }
