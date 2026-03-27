@@ -17,9 +17,8 @@ public class BookServiceImpl implements BookService {
     private final BookMapper bookMapper;
 
     @Override
-    public BookDto save(CreateBookRequestDto bookDto) {
-        mate.academy.model.Book book = bookMapper.toModel(bookDto);
-        return bookMapper.toDto(bookRepository.save(book));
+    public BookDto save(CreateBookRequestDto requestDto) {
+        return bookMapper.toDto(bookRepository.save(bookMapper.toModel(requestDto)));
     }
 
     @Override
@@ -27,7 +26,6 @@ public class BookServiceImpl implements BookService {
         return bookRepository.findAll().stream()
                 .map(bookMapper::toDto)
                 .toList();
-
     }
 
     @Override
