@@ -2,12 +2,16 @@ package mate.academy.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import mate.academy.dto.request.BookSearchParametersDto;
 import mate.academy.dto.request.CreateBookRequestDto;
 import mate.academy.dto.response.BookDto;
 import mate.academy.exception.EntityNotFoundException;
 import mate.academy.mapper.BookMapper;
 import mate.academy.model.Book;
 import mate.academy.repository.BookRepository;
+import mate.academy.specification.BookSpecificationProvider;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +29,24 @@ public class BookServiceImpl implements BookService {
     @Override
     public List<BookDto> getAll() {
         return bookRepository.findAll().stream()
+                .map(bookMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public List<BookDto> search(BookSearchParametersDto params) {
+        Specification<Book> spec = Specification.where(null);
+        if (params.titles() != null && params.titles().length > 0) {
+            spec = spec.and(BookSpecificationProvider.hasTitleIn(params.titles()));
+        }
+        if (params.authors() != null && params.authors().length > 0) {
+            spec = spec.and(BookSpecificationProvider.hasAuthorIn(params.authors()));
+        }
+        if (params.isbns() != null && params.isbns().length > 0) {
+            spec = spec.and(BookSpecificationProvider.hasIsbnIn(params.isbns()));
+        }
+        List<Book> books = bookRepository.findAll(spec);
+        return books.stream()
                 .map(bookMapper::toDto)
                 .toList();
     }
