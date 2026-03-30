@@ -10,7 +10,6 @@ import mate.academy.mapper.BookMapper;
 import mate.academy.model.Book;
 import mate.academy.repository.BookRepository;
 import mate.academy.specification.BookSpecificationProvider;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
