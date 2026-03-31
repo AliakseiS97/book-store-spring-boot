@@ -1,10 +1,13 @@
 package mate.academy.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mate.academy.dto.request.CreateBookRequestDto;
 import mate.academy.dto.response.BookDto;
+import mate.academy.model.Book;
+import mate.academy.repository.BookRepository;
 import mate.academy.service.BookService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BookController {
     private final BookService bookService;
+    private final BookRepository bookRepository;
 
     @GetMapping
     public List<BookDto> getAll() {
@@ -47,6 +51,9 @@ public class BookController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteBookById(@PathVariable Long id) {
-        bookService.delete(id);
+        Book book = bookRepository.findById(id).orElseThrow(
+                () -> new EntityNotFoundException("Book not found with id: " + id)
+        );
+        bookRepository.delete(book);
     }
 }
