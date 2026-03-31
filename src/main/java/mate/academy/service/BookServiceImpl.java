@@ -1,5 +1,7 @@
 package mate.academy.service;
 
+import io.micrometer.common.util.StringUtils;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mate.academy.dto.request.BookSearchParametersDto;
@@ -35,15 +37,21 @@ public class BookServiceImpl implements BookService {
     @Override
     public List<BookDto> search(BookSearchParametersDto params) {
         Specification<Book> spec = Specification.where(null);
-        if (params.titles() != null && params.titles().length > 0) {
+
+        String[] titles = filterBlanks(params.titles());
+        String[] authors = filterBlanks(params.authors());
+        String[] isbns = filterBlanks(params.isbns());
+
+        if (titles.length > 0) {
             spec = spec.and(BookSpecificationProvider.hasTitleIn(params.titles()));
         }
-        if (params.authors() != null && params.authors().length > 0) {
+        if (authors.length > 0) {
             spec = spec.and(BookSpecificationProvider.hasAuthorIn(params.authors()));
         }
-        if (params.isbns() != null && params.isbns().length > 0) {
+        if (isbns.length > 0) {
             spec = spec.and(BookSpecificationProvider.hasIsbnIn(params.isbns()));
         }
+
         List<Book> books = bookRepository.findAll(spec);
         return books.stream()
                 .map(bookMapper::toDto)
@@ -73,5 +81,14 @@ public class BookServiceImpl implements BookService {
     @Override
     public void delete(Long id) {
         bookRepository.deleteById(id);
+    }
+
+    private String[] filterBlanks(String[] values) {
+        if (values == null) {
+            return new String[0];
+        }
+        return Arrays.stream(values)
+                .filter(StringUtils::isNotBlank)
+                .toArray(String[]::new);
     }
 }
