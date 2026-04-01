@@ -43,13 +43,13 @@ public class BookServiceImpl implements BookService {
         String[] isbns = filterBlanks(params.isbns());
 
         if (titles.length > 0) {
-            spec = spec.and(BookSpecificationProvider.hasTitleIn(params.titles()));
+            spec = spec.and(BookSpecificationProvider.hasTitleIn(titles));
         }
         if (authors.length > 0) {
-            spec = spec.and(BookSpecificationProvider.hasAuthorIn(params.authors()));
+            spec = spec.and(BookSpecificationProvider.hasAuthorIn(authors));
         }
         if (isbns.length > 0) {
-            spec = spec.and(BookSpecificationProvider.hasIsbnIn(params.isbns()));
+            spec = spec.and(BookSpecificationProvider.hasIsbnIn(isbns));
         }
 
         List<Book> books = bookRepository.findAll(spec);
