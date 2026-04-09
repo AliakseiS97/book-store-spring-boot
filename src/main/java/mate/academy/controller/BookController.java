@@ -1,5 +1,6 @@
 package mate.academy.controller;
 
+import org.springdoc.core.annotations.ParameterObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,15 +29,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookController {
     private final BookService bookService;
 
-    @Operation(summary = "Get all books with pagination")
+    @Operation(
+            summary = "Get all books",
+            description = "Supports pagination via page and size parameters, "
+                    + "and sorting via sort=field,asc or sort=field,desc"
+    )
     @GetMapping
-    public Page<BookDto> getAll(Pageable pageable) {
+    public Page<BookDto> getAll(@ParameterObject Pageable pageable) {
         return bookService.getAll(pageable);
     }
 
-    @Operation(summary = "Get book by parameters")
+    @Operation(
+            summary = "Search books",
+            description = "Supports filtering by titles, authors, and isbns, "
+                    + "with pagination and sorting"
+    )
     @GetMapping("/search")
-    public Page<BookDto> searchBooks(BookSearchParametersDto params, Pageable pageable) {
+    public Page<BookDto> searchBooks(@ParameterObject BookSearchParametersDto params,
+                                     @ParameterObject Pageable pageable) {
         return bookService.search(params, pageable);
     }
 
