@@ -2,7 +2,6 @@ databaseChangeLog:
   - changeSet:
       id: 06-assign-roles-to-users
       author: aliaksei
-      dbms: mysql
       changes:
         - insert:
             tableName: users
