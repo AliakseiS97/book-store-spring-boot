@@ -2,23 +2,37 @@ databaseChangeLog:
   - changeSet:
       id: 06-assign-roles-to-users
       author: aliaksei
-      dbms: mysql
       changes:
         - insert:
-            tableName: users_roles
+            tableName: users
             columns:
               - column:
-                  name: user_id
-                  value: 1
+                  name: email
+                  value: admin@example.com
               - column:
-                  name: role_id
-                  value: 1
+                  name: password
+                  value: "$2a$10$rAN1/.Odz8RaQomrfRJCsut1T1vXf0zEOA4/9vUgtcQ0h2ThxhU.."
+              - column:
+                  name: first_name
+                  value: Admin
+              - column:
+                  name: last_name
+                  value: User
         - insert:
             tableName: users_roles
             columns:
               - column:
                   name: user_id
-                  value: 1
+                  valueComputed: "(SELECT id FROM users WHERE email = 'admin@example.com')"
               - column:
                   name: role_id
-                  value: 2
+                  valueComputed: "(SELECT id FROM roles WHERE name = 'ROLE_USER')"
+        - insert:
+            tableName: users_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'admin@example.com')"
+              - column:
+                  name: role_id
+                  valueComputed: "(SELECT id FROM roles WHERE name = 'ROLE_ADMIN')"
