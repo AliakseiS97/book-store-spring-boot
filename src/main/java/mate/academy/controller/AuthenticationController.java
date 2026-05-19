@@ -3,8 +3,11 @@ package mate.academy.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import mate.academy.dto.request.UserLoginRequestDto;
 import mate.academy.dto.request.UserRegistrationRequestDto;
+import mate.academy.dto.response.UserLoginResponseDto;
 import mate.academy.dto.response.UserResponseDto;
+import mate.academy.service.AuthenticationService;
 import mate.academy.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthenticationController {
     private final UserService userService;
+    private final AuthenticationService authenticationService;
 
     @Operation(
             summary = "Register a new user",
@@ -25,5 +29,14 @@ public class AuthenticationController {
     public UserResponseDto registerUser(
             @Valid @RequestBody UserRegistrationRequestDto requestDto) {
         return userService.register(requestDto);
+    }
+
+    @PostMapping("/login")
+    @Operation(
+            summary = "Login a user",
+            description = "Login a user with email and password"
+    )
+    public UserLoginResponseDto login(@RequestBody @Valid UserLoginRequestDto request) {
+        return authenticationService.login(request);
     }
 }
