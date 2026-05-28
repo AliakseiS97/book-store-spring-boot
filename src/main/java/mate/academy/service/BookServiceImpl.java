@@ -2,10 +2,12 @@ package mate.academy.service;
 
 import io.micrometer.common.util.StringUtils;
 import java.util.Arrays;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mate.academy.dto.request.BookSearchParametersDto;
 import mate.academy.dto.request.CreateBookRequestDto;
 import mate.academy.dto.response.BookDto;
+import mate.academy.dto.response.BookDtoWithoutCategoryIds;
 import mate.academy.exception.EntityNotFoundException;
 import mate.academy.mapper.BookMapper;
 import mate.academy.model.Book;
@@ -22,6 +24,14 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+
+    @Override
+    public List<BookDtoWithoutCategoryIds> findAllByCategoryId(Long id, Pageable pageable) {
+        return bookRepository.findAllByCategoryId(id, pageable)
+                .stream()
+                .map(bookMapper::toDtoWithoutCategories)
+                .toList();
+    }
 
     @Override
     public BookDto save(CreateBookRequestDto requestDto) {
