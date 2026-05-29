@@ -2,7 +2,6 @@ package mate.academy.mapper;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import mate.academy.dto.request.CreateBookRequestDto;
 import mate.academy.dto.response.BookDto;
 import mate.academy.dto.response.BookDtoWithoutCategoryIds;
@@ -22,13 +21,6 @@ public interface BookMapper {
     Book toModel(CreateBookRequestDto requestDto);
 
     BookDtoWithoutCategoryIds toDtoWithoutCategories(Book book);
-
-    @AfterMapping
-    default void setCategoryIds(@MappingTarget BookDto bookDto, Book book) {
-        bookDto.setCategoryIds(book.getCategories().stream()
-                .map(Category::getId)
-                .collect(Collectors.toSet()));
-    }
 
     @AfterMapping
     default void setCategories(@MappingTarget Book book, CreateBookRequestDto dto) {

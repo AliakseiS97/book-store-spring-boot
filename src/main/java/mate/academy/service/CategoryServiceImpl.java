@@ -1,9 +1,10 @@
 package mate.academy.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import mate.academy.dto.request.CreateCategoryRequestDto;
 import mate.academy.dto.response.CategoryDto;
+import mate.academy.exception.EntityNotFoundException;
 import mate.academy.mapper.CategoryMapper;
 import mate.academy.model.Category;
 import mate.academy.repository.CategoryRepository;
@@ -31,18 +32,18 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDto save(CategoryDto categoryDto) {
-        return categoryMapper.toDto(categoryRepository.save(categoryMapper.toModel(categoryDto)));
+    public CategoryDto save(CreateCategoryRequestDto requestDto) {
+        return categoryMapper.toDto(categoryRepository.save(categoryMapper.toEntity(requestDto)));
     }
 
     @Override
-    public CategoryDto update(Long id, CategoryDto categoryDto) {
+    public CategoryDto update(Long id, CreateCategoryRequestDto requestDto) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Category not found with id: " + id)
                 );
-        category.setName(categoryDto.getName());
-        category.setDescription(categoryDto.getDescription());
+        category.setName(requestDto.getName());
+        category.setDescription(requestDto.getDescription());
         return categoryMapper.toDto(categoryRepository.save(category));
     }
 

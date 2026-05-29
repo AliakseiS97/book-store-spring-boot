@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import mate.academy.dto.request.CreateCategoryRequestDto;
 import mate.academy.dto.response.BookDtoWithoutCategoryIds;
 import mate.academy.dto.response.CategoryDto;
 import mate.academy.service.BookService;
@@ -36,8 +37,8 @@ public class CategoryController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public CategoryDto createCategory(
-            @RequestBody @Valid CategoryDto categoryDto) {
-        return categoryService.save(categoryDto);
+            @RequestBody @Valid CreateCategoryRequestDto requestDto) {
+        return categoryService.save(requestDto);
     }
 
     @Operation(
@@ -68,8 +69,8 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public CategoryDto updateCategory(
             @PathVariable Long id,
-            @RequestBody @Valid CategoryDto categoryDto) {
-        return categoryService.update(id, categoryDto);
+            @RequestBody @Valid CreateCategoryRequestDto requestDto) {
+        return categoryService.update(id, requestDto);
     }
 
     @Operation(
