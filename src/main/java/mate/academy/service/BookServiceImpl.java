@@ -2,14 +2,20 @@ package mate.academy.service;
 
 import io.micrometer.common.util.StringUtils;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import mate.academy.dto.request.BookSearchParametersDto;
 import mate.academy.dto.request.CreateBookRequestDto;
 import mate.academy.dto.response.BookDto;
+import mate.academy.dto.response.BookDtoWithoutCategoryIds;
 import mate.academy.exception.EntityNotFoundException;
 import mate.academy.mapper.BookMapper;
 import mate.academy.model.Book;
+import mate.academy.model.Category;
 import mate.academy.repository.BookRepository;
+import mate.academy.repository.CategoryRepository;
 import mate.academy.specification.BookSpecificationProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,10 +28,24 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+    private final CategoryRepository categoryRepository;
+
+    @Override
+    public List<BookDtoWithoutCategoryIds> findAllByCategoryId(Long id, Pageable pageable) {
+        if (!categoryRepository.existsById(id)) {
+            throw new EntityNotFoundException("Category not found with id: " + id);
+        }
+        return bookRepository.findAllByCategoriesId(id, pageable)
+                .stream()
+                .map(bookMapper::toDtoWithoutCategories)
+                .toList();
+    }
 
     @Override
     public BookDto save(CreateBookRequestDto requestDto) {
-        return bookMapper.toDto(bookRepository.save(bookMapper.toModel(requestDto)));
+        Book book = bookMapper.toModel(requestDto);
+        book.setCategories(getCategoriesFromIds(requestDto.getCategoryIds()));
+        return bookMapper.toDto(bookRepository.save(book));
     }
 
     @Override
@@ -65,14 +85,12 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public BookDto update(Long id, CreateBookRequestDto requestDto) {
-        Book book = bookRepository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Book not found with id: " + id));
-        book.setAuthor(requestDto.getAuthor());
-        book.setIsbn(requestDto.getIsbn());
-        book.setPrice(requestDto.getPrice());
-        book.setTitle(requestDto.getTitle());
-        book.setDescription(requestDto.getDescription());
-        book.setCoverImage(requestDto.getCoverImage());
+        if (!bookRepository.existsById(id)) {
+            throw new EntityNotFoundException("Book not found with id: " + id);
+        }
+        Book book = bookMapper.toModel(requestDto);
+        book.setId(id);
+        book.setCategories(getCategoriesFromIds(requestDto.getCategoryIds()));
         return bookMapper.toDto(bookRepository.save(book));
     }
 
@@ -91,5 +109,16 @@ public class BookServiceImpl implements BookService {
         return Arrays.stream(values)
                 .filter(StringUtils::isNotBlank)
                 .toArray(String[]::new);
+    }
+
+    private Set<Category> getCategoriesFromIds(Set<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(categoryIds));
+        if (categories.size() != categoryIds.size()) {
+            throw new EntityNotFoundException("One or more categories not found: " + categoryIds);
+        }
+        return categories;
     }
 }
