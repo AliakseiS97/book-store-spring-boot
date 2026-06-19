@@ -7,8 +7,10 @@ import mate.academy.dto.response.UserResponseDto;
 import mate.academy.exception.RegistrationException;
 import mate.academy.mapper.UserMapper;
 import mate.academy.model.Role;
+import mate.academy.model.ShoppingCart;
 import mate.academy.model.User;
 import mate.academy.repository.RoleRepository;
+import mate.academy.repository.ShoppingCartRepository;
 import mate.academy.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
+    private final ShoppingCartRepository shoppingCartRepository;
 
     @Override
     public UserResponseDto register(
@@ -33,6 +36,9 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RegistrationException("Role not found"));
         user.setRoles(Set.of(userRole));
         User savedUser = userRepository.save(user);
+        ShoppingCart cart = new ShoppingCart();
+        cart.setUser(savedUser);
+        shoppingCartRepository.save(cart);
         return userMapper.toDto(savedUser);
     }
 }
