@@ -9,9 +9,11 @@ import mate.academy.exception.EntityNotFoundException;
 import mate.academy.mapper.ShoppingCartMapper;
 import mate.academy.model.CartItem;
 import mate.academy.model.ShoppingCart;
+import mate.academy.model.User;
 import mate.academy.repository.BookRepository;
 import mate.academy.repository.ShoppingCartRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,20 +23,16 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private final BookRepository bookRepository;
 
     @Override
+    @Transactional
     public ShoppingCartDto getCart(Long userId) {
-        ShoppingCart shoppingCart = shoppingCartRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ShoppingCart not found by userId " + userId)
-                );
+        ShoppingCart shoppingCart = getOrCreateCart(userId);
         return shoppingCartMapper.toDto(shoppingCart);
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto addBook(Long userId, CreateCartItemRequestDto requestDto) {
-        ShoppingCart shoppingCart = shoppingCartRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ShoppingCart not found by userId " + userId)
-                );
+        ShoppingCart shoppingCart = getOrCreateCart(userId);
         Optional<CartItem> existing = shoppingCart.getCartItems().stream()
                 .filter(i -> i.getBook().getId().equals(requestDto.getBookId())).findFirst();
         if (existing.isPresent()) {
@@ -54,14 +52,12 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto update(
             Long userId,
             Long cartItemId,
             UpdateCartItemRequestDto requestDto) {
-        ShoppingCart shoppingCart = shoppingCartRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ShoppingCart not found by userId " + userId)
-                );
+        ShoppingCart shoppingCart = getOrCreateCart(userId);
         CartItem cartItem = shoppingCart.getCartItems()
                 .stream()
                 .filter(i -> i.getId().equals(cartItemId))
@@ -75,11 +71,9 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     }
 
     @Override
+    @Transactional
     public void remove(Long userId, Long cartItemId) {
-        ShoppingCart shoppingCart = shoppingCartRepository.findByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ShoppingCart not found by userId " + userId)
-                );
+        ShoppingCart shoppingCart = getOrCreateCart(userId);
         CartItem cartItem = shoppingCart.getCartItems()
                 .stream()
                 .filter(i -> i.getId().equals(cartItemId))
@@ -89,5 +83,16 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 );
         shoppingCart.getCartItems().remove(cartItem);
         shoppingCartRepository.save(shoppingCart);
+    }
+
+    private ShoppingCart getOrCreateCart(Long userId) {
+        return shoppingCartRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    ShoppingCart shoppingCart = new ShoppingCart();
+                    User user = new User();
+                    user.setId(userId);
+                    shoppingCart.setUser(user);
+                    return shoppingCartRepository.save(shoppingCart);
+                });
     }
 }

@@ -32,3 +32,7 @@ databaseChangeLog:
                   type: INT
                   constraints:
                     nullable: false
+        - addUniqueConstraint:
+            tableName: cart_items
+            columnNames: shopping_cart_id, book_id
+            constraintName: uq_cart_items_cart_book

@@ -20,11 +20,12 @@ import lombok.ToString;
 @Data
 @NoArgsConstructor
 @ToString(exclude = "cartItems")
-@EqualsAndHashCode(exclude = {"cartItems", "user"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "shopping_carts")
 public class ShoppingCart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
     @JoinColumn(name = "user_id", nullable = false)
     @OneToOne
