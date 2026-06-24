@@ -6,6 +6,7 @@ import mate.academy.dto.request.CreateCartItemRequestDto;
 import mate.academy.dto.request.UpdateCartItemRequestDto;
 import mate.academy.dto.response.ShoppingCartDto;
 import mate.academy.exception.EntityNotFoundException;
+import mate.academy.mapper.CartItemMapper;
 import mate.academy.mapper.ShoppingCartMapper;
 import mate.academy.model.CartItem;
 import mate.academy.model.ShoppingCart;
@@ -21,6 +22,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private final ShoppingCartRepository shoppingCartRepository;
     private final ShoppingCartMapper shoppingCartMapper;
     private final BookRepository bookRepository;
+    private final CartItemMapper cartItemMapper;
 
     @Override
     @Transactional
@@ -32,19 +34,18 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     @Override
     @Transactional
     public ShoppingCartDto addBook(Long userId, CreateCartItemRequestDto requestDto) {
+        if (!bookRepository.existsById(requestDto.getBookId())) {
+            throw new EntityNotFoundException(
+                    "Book not found by bookId " + requestDto.getBookId());
+        }
         ShoppingCart shoppingCart = getOrCreateCart(userId);
         Optional<CartItem> existing = shoppingCart.getCartItems().stream()
                 .filter(i -> i.getBook().getId().equals(requestDto.getBookId())).findFirst();
         if (existing.isPresent()) {
             existing.get().setQuantity(existing.get().getQuantity() + requestDto.getQuantity());
         } else {
-            CartItem cartItem = new CartItem();
+            CartItem cartItem = cartItemMapper.toEntity(requestDto);
             cartItem.setShoppingCart(shoppingCart);
-            cartItem.setQuantity(requestDto.getQuantity());
-            cartItem.setBook(bookRepository.findById(requestDto.getBookId()).orElseThrow(
-                    () -> new EntityNotFoundException(
-                            "Book not found by bookId " + requestDto.getBookId()))
-            );
             shoppingCart.getCartItems().add(cartItem);
         }
         shoppingCartRepository.save(shoppingCart);
