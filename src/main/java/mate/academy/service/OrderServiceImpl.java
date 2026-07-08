@@ -19,6 +19,7 @@ import mate.academy.model.OrderItem;
 import mate.academy.model.ShoppingCart;
 import mate.academy.model.Status;
 import mate.academy.model.User;
+import mate.academy.repository.OrderItemRepository;
 import mate.academy.repository.OrderRepository;
 import mate.academy.repository.ShoppingCartRepository;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final ShoppingCartRepository shoppingCartRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @Override
     @Transactional
@@ -41,15 +43,18 @@ public class OrderServiceImpl implements OrderService {
                                        Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         ShoppingCart shoppingCart = shoppingCartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("ShoppingCart not found")
-                );
+                .orElseThrow(() -> new EntityNotFoundException("ShoppingCart not found"));
+        if (shoppingCart.getCartItems().isEmpty()) {
+            throw new IllegalStateException("Cannot place an order with an empty shopping cart");
+        }
         Order order = new Order();
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
         order.setStatus(Status.PENDING);
         order.setShippingAddress(requestDto.getShippingAddress());
 
-        Set<OrderItem> orderItems = shoppingCart.getCartItems().stream()
+        Set<OrderItem> orderItems = shoppingCart.getCartItems()
+                .stream()
                 .map(c -> createOrderItem(c, order))
                 .collect(Collectors.toSet());
         order.setOrderItems(orderItems);
@@ -77,9 +82,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponseDto updateStatus(Long id, UpdateOrderStatusRequestDto dto) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Order not found by id: " + id)
-                );
+                .orElseThrow(() -> new EntityNotFoundException("Order not found by id: " + id));
+        validateStatusTransition(order.getStatus(), dto.getStatus());
         order.setStatus(dto.getStatus());
         orderRepository.save(order);
         return orderMapper.toDto(order);
@@ -89,15 +93,10 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderItemResponseDto> getAllOrderItem(Long orderId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Order not found by id: " + orderId)
-                );
-        if (!user.getId().equals(order.getUser().getId())) {
-            throw new EntityNotFoundException(
-                    "Order not found by id: " + orderId);
-        }
-        return order.getOrderItems().stream().map(orderItemMapper::toDto).toList();
+        return orderItemRepository.findAllByOrderIdAndOrderUserId(orderId, user.getId())
+                .stream()
+                .map(orderItemMapper::toDto)
+                .toList();
     }
 
     @Override
@@ -105,16 +104,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderItemResponseDto getOrderItemById(Long orderId, Long itemId,
                                                  Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Order not found by id: " + orderId));
-        if (!user.getId().equals(order.getUser().getId())) {
-            throw new EntityNotFoundException(
-                    "Order not found by id: " + orderId);
-        }
-        OrderItem orderItem = order.getOrderItems().stream()
-                .filter(i -> i.getId().equals(itemId))
-                .findFirst()
+        OrderItem orderItem = orderItemRepository
+                .findByIdAndOrderIdAndOrderUserId(itemId, orderId, user.getId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "OrderItem not found by id: " + itemId));
         return orderItemMapper.toDto(orderItem);
@@ -127,5 +118,11 @@ public class OrderServiceImpl implements OrderService {
         orderItem.setQuantity(cartItem.getQuantity());
         orderItem.setPrice(cartItem.getBook().getPrice());
         return orderItem;
+    }
+
+    private void validateStatusTransition(Status current, Status next) {
+        if (current == Status.DELIVERED && next != Status.DELIVERED) {
+            throw new IllegalStateException("Delivered order cannot change status");
+        }
     }
 }
