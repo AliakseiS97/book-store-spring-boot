@@ -278,7 +278,6 @@ Interactive OpenAPI docs are served by springdoc at `/swagger-ui/index.html`, wi
 
 ![Swagger UI](docs/images/swagger.png)
 
-> `TODO:` add the screenshot at `docs/images/swagger.png`.
 
 ## Postman
 
@@ -299,7 +298,7 @@ A ready-to-use collection lives at [`postman/book-store.postman_collection.json`
 
 ## Testing
 
-> **Docker must be running for both commands below.** The repository tests (`BookRepositoryTest`, `ShoppingCartRepositoryTest`) are `@Testcontainers` tests that start a real MySQL 8 container and have no `disabledWithoutDocker` guard. The build configures no Surefire include/exclude filters and no Failsafe plugin, so these tests run in the ordinary `test` phase together with the unit and controller tests — there is no separate integration-test phase to opt out of.
+> Docker must be running for both commands: the repository tests use Testcontainers to start a real MySQL 8 container.
 
 Run the full test suite (unit, controller, and Testcontainers repository tests):
 
