@@ -258,9 +258,19 @@ The Liquibase changelogs seed the two roles (`ROLE_USER`, `ROLE_ADMIN`) and one 
 
 - **Email:** `admin@example.com`
 - **Roles:** `ROLE_USER` + `ROLE_ADMIN`
-- **Password:** stored only as a BCrypt hash in `06-assign-roles-to-users.yaml`; the plaintext is not committed to the repository. `TODO:` document the admin password (or reset it) before sharing.
+- **Password:** stored only as a BCrypt hash in `06-assign-roles-to-users.yaml`; the plaintext is not committed to the repository.
 
 New users can always be created through `POST /api/auth/registration`.
+
+#### Getting admin access
+
+Registration always grants `ROLE_USER`. To obtain an admin, register a user via `POST /api/auth/registration`, then grant the role directly in the database (tables `users` and `roles`, joined through `users_roles` with columns `user_id` and `role_id`):
+
+```sql
+INSERT INTO users_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ROLE_ADMIN'
+WHERE u.email = 'you@example.com';
+```
 
 ## API documentation (Swagger)
 
@@ -289,13 +299,15 @@ A ready-to-use collection lives at [`postman/book-store.postman_collection.json`
 
 ## Testing
 
-Run the unit and controller tests:
+> **Docker must be running for both commands below.** The repository tests (`BookRepositoryTest`, `ShoppingCartRepositoryTest`) are `@Testcontainers` tests that start a real MySQL 8 container and have no `disabledWithoutDocker` guard. The build configures no Surefire include/exclude filters and no Failsafe plugin, so these tests run in the ordinary `test` phase together with the unit and controller tests — there is no separate integration-test phase to opt out of.
+
+Run the full test suite (unit, controller, and Testcontainers repository tests):
 
 ```bash
 ./mvnw test
 ```
 
-Run the full verification (Checkstyle + all tests, including Testcontainers-backed repository tests — requires Docker):
+Run the full build — Checkstyle (bound to the `compile` phase) plus the same complete test suite:
 
 ```bash
 ./mvnw verify
