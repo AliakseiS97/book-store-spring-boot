@@ -40,13 +40,13 @@ A REST backend for an online bookstore. It lets shoppers browse and search a boo
 ### ADMIN
 - Create, update, and delete (soft delete) books.
 - Create, update, and delete (soft delete) categories.
-- Update the status of any order (`PENDING` → `COMPLETED` → `DELIVERED`).
+- Update the status of any order (PENDING, COMPLETED, DELIVERED); DELIVERED is final.
 
 > Roles are stored as `ROLE_USER` and `ROLE_ADMIN`. Newly registered accounts receive `ROLE_USER`.
 
 ## API endpoints
 
-All endpoints are prefixed with the application context and require a `Authorization: Bearer <token>` header except the two authentication endpoints. Roles below reflect the `@PreAuthorize` rules in the controllers.
+All endpoints require an `Authorization: Bearer <token>` header except the two authentication endpoints. Roles below reflect the `@PreAuthorize` rules in the controllers.
 
 ### Authentication — `/api/auth`
 
@@ -59,7 +59,7 @@ All endpoints are prefixed with the application context and require a `Authoriza
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/api/books` | USER, ADMIN | List all books. Supports `page`, `size`, and `sort=field,asc|desc`. |
+| GET | `/api/books` | USER, ADMIN | List all books. Supports page, size, and sort=field,asc or desc. |
 | GET | `/api/books/search` | USER, ADMIN | Filter by `titles`, `authors`, `isbns` (repeatable), with pagination and sorting. |
 | GET | `/api/books/{id}` | USER, ADMIN | Get a single book by id. |
 | POST | `/api/books` | ADMIN | Create a book. |
