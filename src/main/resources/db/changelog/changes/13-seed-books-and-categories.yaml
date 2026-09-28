@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13-seed-books-and-categories
+      author: aliaksei
+      changes:
+        - sqlFile:
+            path: 13-seed-books-and-categories.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            endDelimiter: ;
