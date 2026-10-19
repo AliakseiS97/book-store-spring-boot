@@ -1,8 +1,7 @@
 {
   "info": {
-    "_postman_id": "b00c57e0-1a2b-4c3d-8e4f-9a0b1c2d3e4f",
     "name": "Book Store API",
-    "description": "REST API for an online bookstore (Spring Boot 3 + JWT).\n\nUsage:\n1. Set the collection variable `baseUrl` (default http://localhost:8080). For the Docker Compose setup use http://localhost:8088 (SPRING_LOCAL_PORT).\n2. Run Auth > Register (optional), then Auth > Login. Login stores the JWT in the `token` collection variable.\n3. All other requests inherit Bearer {{token}} auth at the collection level.",
+    "description": "Requests for the Book Store API.\n\n1. Set `baseUrl` (local: http://localhost:8088, demo: http://56.228.31.17:8088).\n2. Run **Auth → Login as Admin** or **Login as User**: the token is saved automatically.\n3. All other requests use the `token` variable.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -18,13 +17,47 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
+      "value": "http://56.228.31.17:8088"
     },
     {
       "key": "token",
-      "value": "",
-      "type": "string"
+      "value": ""
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "password123"
+    },
+    {
+      "key": "userEmail",
+      "value": "recruiter@example.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "password123"
+    },
+    {
+      "key": "bookId",
+      "value": "1"
+    },
+    {
+      "key": "categoryId",
+      "value": "1"
+    },
+    {
+      "key": "cartItemId",
+      "value": "1"
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    },
+    {
+      "key": "orderItemId",
+      "value": "1"
     }
   ],
   "item": [
@@ -32,11 +65,8 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Register",
+          "name": "Register User",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -44,15 +74,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\",\n  \"repeatPassword\": \"Password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"shippingAddress\": \"123 Main St, Springfield\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/auth/registration",
               "host": [
@@ -64,33 +85,23 @@
                 "registration"
               ]
             },
-            "description": "Register a new user. Public endpoint. Returns the created user without the password. Duplicate email returns 409."
-          },
-          "response": []
-        },
-        {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json && json.token) {",
-                  "    pm.collectionVariables.set(\"token\", json.token);",
-                  "}",
-                  "pm.test(\"token saved\", function () {",
-                  "    pm.expect(pm.collectionVariables.get(\"token\")).to.be.a(\"string\").and.not.empty;",
-                  "});"
-                ]
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"repeatPassword\": \"{{userPassword}}\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"shippingAddress\": \"Gdanska 1, Bydgoszcz, Poland\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "noauth"
-            },
+            }
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "request": {
             "method": "POST",
             "header": [
               {
@@ -98,15 +109,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
               "host": [
@@ -118,9 +120,115 @@
                 "login"
               ]
             },
-            "description": "Authenticate with email and password. Public endpoint. Returns { \"token\": \"...\" }. The test script saves the token into the `token` collection variable."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login with wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
         }
       ]
     },
@@ -133,7 +241,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/books?page=0&size=20&sort=title,asc",
+              "raw": "{{baseUrl}}/api/books?page=0&size=10&sort=price,asc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -148,17 +256,33 @@
                 },
                 {
                   "key": "size",
-                  "value": "20"
+                  "value": "10"
                 },
                 {
                   "key": "sort",
-                  "value": "title,asc"
+                  "value": "price,asc"
                 }
               ]
-            },
-            "description": "List all books. Roles: USER, ADMIN. Supports pagination and sorting."
-          },
-          "response": []
+            }
+          }
+        },
+        {
+          "name": "Get book by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "{{bookId}}"
+              ]
+            }
+          }
         },
         {
           "name": "Search books",
@@ -166,7 +290,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/books/search?titles=Clean Code&authors=Robert C. Martin&page=0&size=20",
+              "raw": "{{baseUrl}}/api/books/search?titles=Java",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -178,50 +302,11 @@
               "query": [
                 {
                   "key": "titles",
-                  "value": "Clean Code"
-                },
-                {
-                  "key": "authors",
-                  "value": "Robert C. Martin"
-                },
-                {
-                  "key": "isbns",
-                  "value": "9780132350884",
-                  "disabled": true
-                },
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "20"
+                  "value": "Java"
                 }
               ]
-            },
-            "description": "Search books by titles, authors and/or isbns (each parameter is repeatable). Roles: USER, ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Get book by id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/books/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "books",
-                "1"
-              ]
-            },
-            "description": "Get a single book by id. Roles: USER, ADMIN."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Create book (ADMIN)",
@@ -233,15 +318,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Clean Code\",\n  \"author\": \"Robert C. Martin\",\n  \"isbn\": \"9780132350884\",\n  \"price\": 39.99,\n  \"description\": \"A Handbook of Agile Software Craftsmanship\",\n  \"coverImage\": \"https://example.com/clean-code.jpg\",\n  \"categoryIds\": [1]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/books",
               "host": [
@@ -252,9 +328,60 @@
                 "books"
               ]
             },
-            "description": "Create a book. Role: ADMIN. price must be positive; title, author and isbn are required."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java Concurrency in Practice\",\n  \"author\": \"Brian Goetz\",\n  \"isbn\": \"9780321349606\",\n  \"price\": 45.99,\n  \"description\": \"Concurrency in Java done right\",\n  \"coverImage\": \"https://example.com/covers/jcip.jpg\",\n  \"categoryIds\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('bookId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create book - invalid data (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "books"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"author\": \"\",\n  \"isbn\": \"\",\n  \"price\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         },
         {
           "name": "Update book (ADMIN)",
@@ -266,29 +393,27 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Clean Code (2nd printing)\",\n  \"author\": \"Robert C. Martin\",\n  \"isbn\": \"9780132350884\",\n  \"price\": 42.50,\n  \"description\": \"A Handbook of Agile Software Craftsmanship\",\n  \"coverImage\": \"https://example.com/clean-code.jpg\",\n  \"categoryIds\": [1]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{baseUrl}}/api/books/1",
+              "raw": "{{baseUrl}}/api/books/{{bookId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "books",
-                "1"
+                "{{bookId}}"
               ]
             },
-            "description": "Update a book by id. Role: ADMIN."
-          },
-          "response": []
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java Concurrency in Practice (Updated)\",\n  \"author\": \"Brian Goetz\",\n  \"isbn\": \"9780321349606\",\n  \"price\": 39.99,\n  \"description\": \"Updated description\",\n  \"coverImage\": \"https://example.com/covers/jcip.jpg\",\n  \"categoryIds\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         },
         {
           "name": "Delete book (ADMIN)",
@@ -296,25 +421,77 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/books/1",
+              "raw": "{{baseUrl}}/api/books/{{bookId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "books",
-                "1"
+                "{{bookId}}"
               ]
-            },
-            "description": "Soft delete a book by id (sets is_deleted = true). Role: ADMIN. Returns 204 No Content."
-          },
-          "response": []
+            }
+          }
         }
       ]
     },
     {
       "name": "Categories",
       "item": [
+        {
+          "name": "Get all categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get category by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get books by category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}",
+                "books"
+              ]
+            }
+          }
+        },
         {
           "name": "Create category (ADMIN)",
           "request": {
@@ -325,15 +502,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Programming\",\n  \"description\": \"Software development and programming books\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/categories",
               "host": [
@@ -344,58 +512,29 @@
                 "categories"
               ]
             },
-            "description": "Create a category. Role: ADMIN. name is required."
-          },
-          "response": []
-        },
-        {
-          "name": "Get all categories",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories?page=0&size=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "20"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fantasy\",\n  \"description\": \"Fantasy novels and sagas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
-            },
-            "description": "List categories (paginated). Roles: USER, ADMIN."
+              }
+            }
           },
-          "response": []
-        },
-        {
-          "name": "Get category by id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "1"
-              ]
-            },
-            "description": "Get a category by id. Roles: USER, ADMIN."
-          },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('categoryId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Update category (ADMIN)",
@@ -407,29 +546,27 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Programming & Software\",\n  \"description\": \"Updated description\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{baseUrl}}/api/categories/1",
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "categories",
-                "1"
+                "{{categoryId}}"
               ]
             },
-            "description": "Update a category by id. Role: ADMIN."
-          },
-          "response": []
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fantasy & Sci-Fi\",\n  \"description\": \"Updated description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         },
         {
           "name": "Delete category (ADMIN)",
@@ -437,58 +574,25 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/categories/1",
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "categories",
-                "1"
+                "{{categoryId}}"
               ]
-            },
-            "description": "Soft delete a category by id (sets is_deleted = true, hidden from later reads). Role: ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Get books by category id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/1/books?page=0&size=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "1",
-                "books"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "List books belonging to a category (paginated). Roles: USER, ADMIN."
-          },
-          "response": []
+            }
+          }
         }
       ]
     },
     {
-      "name": "Shopping cart",
+      "name": "Shopping Cart",
       "item": [
         {
-          "name": "Get cart",
+          "name": "Get my cart",
           "request": {
             "method": "GET",
             "header": [],
@@ -501,10 +605,8 @@
                 "api",
                 "cart"
               ]
-            },
-            "description": "Get the current user's shopping cart. Role: USER."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Add book to cart",
@@ -516,15 +618,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"bookId\": 1,\n  \"quantity\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/cart",
               "host": [
@@ -535,9 +628,30 @@
                 "cart"
               ]
             },
-            "description": "Add a book to the cart. Role: USER. bookId and quantity must be positive. If the book is already in the cart, its quantity is increased."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": 1,\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const items = pm.response.json().cartItems || [];",
+                  "    if (items.length) pm.collectionVariables.set('cartItemId', items[items.length - 1].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Update cart item quantity",
@@ -549,6 +663,18 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/cart-items/{{cartItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart",
+                "cart-items",
+                "{{cartItemId}}"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"quantity\": 3\n}",
@@ -557,22 +683,8 @@
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/cart/cart-items/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "cart",
-                "cart-items",
-                "1"
-              ]
-            },
-            "description": "Update the quantity of a cart item by its id. Role: USER. quantity must be positive."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Remove cart item",
@@ -580,7 +692,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/cart/cart-items/1",
+              "raw": "{{baseUrl}}/api/cart/cart-items/{{cartItemId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -588,12 +700,10 @@
                 "api",
                 "cart",
                 "cart-items",
-                "1"
+                "{{cartItemId}}"
               ]
-            },
-            "description": "Remove a cart item by its id. Role: USER. Returns 204 No Content."
-          },
-          "response": []
+            }
+          }
         }
       ]
     },
@@ -610,15 +720,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"shippingAddress\": \"123 Main St, Springfield\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/orders",
               "host": [
@@ -629,42 +730,85 @@
                 "orders"
               ]
             },
-            "description": "Place an order from the current cart contents; the cart is cleared afterwards. Role: USER. shippingAddress is required. An empty cart returns 409. Returns 201 Created."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": \"Gdanska 1, Bydgoszcz, Poland\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('orderId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Get order history",
+          "name": "Get my orders",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/orders?page=0&size=20&sort=orderDate,desc",
+              "raw": "{{baseUrl}}/api/orders",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "orders"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "size",
-                  "value": "20"
-                },
-                {
-                  "key": "sort",
-                  "value": "orderDate,desc"
-                }
               ]
-            },
-            "description": "Get the current user's order history (paginated, sortable). Role: USER."
-          },
-          "response": []
+            }
+          }
+        },
+        {
+          "name": "Get order items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}",
+                "items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get order item by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{orderItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}",
+                "items",
+                "{{orderItemId}}"
+              ]
+            }
+          }
         },
         {
           "name": "Update order status (ADMIN)",
@@ -676,72 +820,27 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"COMPLETED\"\n}",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "1"
-              ]
-            },
-            "description": "Update an order's status by id. Role: ADMIN. status is one of PENDING, COMPLETED, DELIVERED. Changing a DELIVERED order returns 409."
-          },
-          "response": []
-        },
-        {
-          "name": "Get order items",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/1/items",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "1",
-                "items"
-              ]
-            },
-            "description": "List items of an order the current user owns. Role: USER."
-          },
-          "response": []
-        },
-        {
-          "name": "Get order item by id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/1/items/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "1",
-                "items",
-                "1"
-              ]
-            },
-            "description": "Get a single item of an order the current user owns. Role: USER."
-          },
-          "response": []
+            }
+          }
         }
       ]
     }

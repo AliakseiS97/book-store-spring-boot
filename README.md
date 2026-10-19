@@ -1,332 +1,224 @@
 # Book Store API
 
-[![Java CI](https://github.com/AliakseiS97/book-store-spring-boot/actions/workflows/ci.yml/badge.svg)](https://github.com/AliakseiS97/book-store-spring-boot/actions/workflows/ci.yml)
-![Java](https://img.shields.io/badge/Java-17-orange)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen)
+A RESTful backend for an online book store, built with Spring Boot. Customers browse and search a catalog, fill a shopping cart and place orders; administrators manage books, categories and order statuses.
 
-A REST backend for an online bookstore. It lets shoppers browse and search a book catalog, organize books into categories, manage a personal shopping cart, and place orders that are built from the cart contents. Access is controlled with stateless JWT authentication and two roles: regular users shop and check out, while administrators manage the catalog and order fulfilment. The project is built with Spring Boot 3 and Spring Security, persists data in MySQL through Spring Data JPA with Liquibase-managed schema migrations, and ships with a Docker Compose setup and an OpenAPI/Swagger UI for exploring the API.
+I built this project to practise how a real backend service is put together end to end: a layered architecture, stateless JWT security, database migrations, automated tests, CI and a containerised deployment to the cloud. It was developed incrementally through a pull-request workflow with mentor code reviews.
 
-## Tech stack
+## Live Demo
 
-| Technology | Purpose |
-| --- | --- |
-| Java 17 | Language / runtime |
-| Spring Boot 3.3.5 | Application framework and auto-configuration |
-| Spring Web (MVC) | REST controllers |
-| Spring Security + JWT (jjwt 0.11.5) | Stateless authentication and role-based authorization |
-| Spring Data JPA / Hibernate 6.4.4 | Persistence and ORM |
-| MySQL 8.0 | Relational database |
-| Liquibase | Versioned database schema migrations |
-| MapStruct 1.5.5 | DTO ↔ entity mapping |
-| Lombok | Boilerplate reduction |
-| Bean Validation | Request payload validation |
-| springdoc-openapi 2.3.0 | OpenAPI 3 spec and Swagger UI |
-| JUnit 5 + Mockito | Unit and controller tests |
-| Testcontainers 1.20.4 (MySQL) / H2 | Integration test databases |
-| Maven | Build tool (wrapper included) |
-| Checkstyle 3.3.0 | Static code-style enforcement (runs at `compile`) |
-| Docker / Docker Compose | Containerization and local orchestration |
-| GitHub Actions | Continuous integration |
+The API is deployed on AWS EC2 and can be tried right away in Swagger UI:
 
-## Features
+http://56.228.31.17:8088/swagger-ui/index.html
 
-### USER
-- Register an account and log in to receive a JWT.
-- Browse the catalog with pagination and sorting, search books by title/author/ISBN, and view book details.
-- Browse categories and list the books in a category.
-- Manage a personal shopping cart: add books (quantities merge when a book is added again), update item quantities, and remove items.
-- Place an order from the current cart contents (the cart is cleared afterwards) and view personal order history and order items.
+| Role  | Email               | Password      |
+|-------|---------------------|---------------|
+| Admin | `admin@example.com` | `password123` |
+| User  | register your own via `POST /api/auth/registration` | |
 
-### ADMIN
-- Create, update, and delete (soft delete) books.
-- Create, update, and delete (soft delete) categories.
-- Update the status of any order (PENDING, COMPLETED, DELIVERED); DELIVERED is final.
+How to try it:
+1. Call `POST /api/auth/login` with the credentials above and copy the `token` from the response.
+2. Click **Authorize** (top right) and paste the token.
+3. Call any endpoint. The database is pre-seeded with **20 books in 5 categories**.
 
-> Roles are stored as `ROLE_USER` and `ROLE_ADMIN`. Newly registered accounts receive `ROLE_USER`.
+> This is a public demo instance, so other visitors may change the data.
 
-## API endpoints
+##  Screenshot
 
-All endpoints require an `Authorization: Bearer <token>` header except the two authentication endpoints. Roles below reflect the `@PreAuthorize` rules in the controllers.
+![Swagger UI](docs/images/swagger.png)
 
-### Authentication — `/api/auth`
+##  Features
 
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| POST | `/api/auth/registration` | Public | Register a new user; returns the created user without the password. Duplicate email → `409 Conflict`. |
-| POST | `/api/auth/login` | Public | Authenticate with email + password; returns a JWT (`{ "token": "..." }`). Bad credentials → `401`. |
+- **JWT authentication & authorization**: stateless sessions, BCrypt password hashing, role-based access (`ROLE_USER`, `ROLE_ADMIN`) enforced with `@PreAuthorize`. Unauthenticated requests get `401`, authenticated users without the required role get `403`.
+- **Book catalog**: full CRUD with pagination and filtered search by title, author and ISBN using JPA Specifications.
+- **Categories**: CRUD with a many-to-many relationship to books and listing of books by category.
+- **Shopping cart**: created lazily for each user; add, update and remove items.
+- **Orders**: place an order from the cart, view order history and order items; admins update order status. Ownership checks ensure users only see their own orders, and invalid status transitions return `409 Conflict`.
+- **Soft delete**: records are flagged instead of removed (Hibernate `@SQLDelete`).
+- **DTO mapping** with MapStruct keeps entities and API contracts separate.
+- **Validation**: Bean Validation on all requests plus a custom `@FieldMatch` validator for password confirmation.
+- **Global exception handling**: structured JSON errors (timestamp, status, path, errors).
+- **Database migrations** with Liquibase, including a seed changeset with demo data.
+- **N+1 prevention** with `@EntityGraph` on repository queries.
+- **Tests**: unit tests (JUnit 5, Mockito) and integration tests on a real MySQL via Testcontainers.
+- **CI**: GitHub Actions runs Checkstyle, build and tests on every push and pull request.
+- **Docker**: multi-stage Dockerfile and `docker-compose` with a MySQL healthcheck.
 
-### Books — `/api/books`
+## Tech Stack
 
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| GET | `/api/books` | USER, ADMIN | List all books. Supports page, size, and sort=field,asc or desc. |
-| GET | `/api/books/search` | USER, ADMIN | Filter by `titles`, `authors`, `isbns` (repeatable), with pagination and sorting. |
-| GET | `/api/books/{id}` | USER, ADMIN | Get a single book by id. |
-| POST | `/api/books` | ADMIN | Create a book. |
-| PUT | `/api/books/{id}` | ADMIN | Update a book by id. |
-| DELETE | `/api/books/{id}` | ADMIN | Soft delete a book (flips `is_deleted`); returns `204 No Content`. |
-
-### Categories — `/api/categories`
-
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| POST | `/api/categories` | ADMIN | Create a category. |
-| GET | `/api/categories` | USER, ADMIN | List categories (paginated via `page`/`size`). |
-| GET | `/api/categories/{id}` | USER, ADMIN | Get a category by id. |
-| PUT | `/api/categories/{id}` | ADMIN | Update a category. |
-| DELETE | `/api/categories/{id}` | ADMIN | Soft delete a category (flips `is_deleted`, hidden from later reads). |
-| GET | `/api/categories/{id}/books` | USER, ADMIN | List books belonging to a category (paginated). |
-
-### Shopping cart — `/api/cart`
-
-The whole controller requires `ROLE_USER`; the cart is always resolved for the authenticated principal.
-
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| GET | `/api/cart` | USER | Get the current user's cart. |
-| POST | `/api/cart` | USER | Add a book with a quantity; if the book is already in the cart, its quantity is increased. |
-| PUT | `/api/cart/cart-items/{cartItemId}` | USER | Update the quantity of a cart item. |
-| DELETE | `/api/cart/cart-items/{cartItemId}` | USER | Remove a cart item; returns `204 No Content`. |
-
-### Orders — `/api/orders`
-
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| POST | `/api/orders` | USER | Place an order from the cart; clears the cart. Empty cart → `409 Conflict`. Returns `201 Created`. |
-| GET | `/api/orders` | USER | Get the current user's order history (paginated, sortable). |
-| PATCH | `/api/orders/{id}` | ADMIN | Update an order's status. Changing a `DELIVERED` order → `409 Conflict`. |
-| GET | `/api/orders/{orderId}/items` | USER | List items of an order the user owns. |
-| GET | `/api/orders/{orderId}/items/{itemId}` | USER | Get a single item of an order the user owns. |
-
-**Notable behavior**
-
-- **Pagination & sorting** are available on all list endpoints via Spring's `Pageable` (`?page=0&size=20&sort=title,asc`).
-- **Soft delete**: books and categories are never physically removed. `@SQLDelete` rewrites deletes as `UPDATE ... SET is_deleted = true`, and `@Where(is_deleted = false)` filters them out of subsequent queries.
-- **Order status transitions** are validated server-side: an order already `DELIVERED` cannot move to another status; the attempt returns `409 Conflict`.
-- **Ownership checks**: order and order-item reads are scoped to the authenticated user directly in the repository queries (`findAllByUser_Id`, `findAllByOrderIdAndOrderUserId`, `findByIdAndOrderIdAndOrderUserId`), so a user cannot read another user's data by guessing ids.
+| Area        | Technology                                      |
+|-------------|-------------------------------------------------|
+| Language    | Java 17                                         |
+| Framework   | Spring Boot 3.3.5 (Web, Data JPA, Security, Validation) |
+| Auth        | Spring Security + JWT (jjwt 0.11.5)             |
+| Persistence | MySQL 8, Hibernate / JPA, Liquibase             |
+| Mapping     | MapStruct                                       |
+| Docs        | springdoc-openapi (Swagger UI)                  |
+| Testing     | JUnit 5, Mockito, Spring Security Test, Testcontainers |
+| Build       | Maven, Checkstyle                               |
+| DevOps      | Docker, Docker Compose, GitHub Actions, AWS EC2 |
 
 ## Architecture
 
-### Request flow
-
 ```mermaid
 flowchart LR
-    Client["Client (Swagger / Postman)"]
-    Filter["JwtAuthenticationFilter<br/>(validates Bearer token)"]
-    Controller["@RestController<br/>(+ @PreAuthorize)"]
-    Service["Service layer<br/>(business logic, @Transactional)"]
-    Repository["Spring Data JPA repository"]
-    DB[("MySQL")]
-
-    Client -->|HTTP + Authorization: Bearer JWT| Filter
-    Filter --> Controller
-    Controller --> Service
-    Service --> Repository
-    Repository --> DB
+    C[Client / Swagger UI] -->|HTTP + JWT| F[JwtAuthenticationFilter]
+    F --> CT[Controllers]
+    CT --> S[Services]
+    S --> M[MapStruct mappers]
+    S --> R[Repositories]
+    R --> DB[(MySQL)]
+    L[Liquibase] -->|migrations + seed data| DB
 ```
 
-### Data model
+Deployment: GitHub → EC2 (`git pull`) → `docker compose up --build` → app container (Spring Boot) + MySQL container.
 
-```mermaid
-erDiagram
-    USERS ||--o{ USERS_ROLES : has
-    ROLES ||--o{ USERS_ROLES : "assigned to"
-    USERS ||--|| SHOPPING_CARTS : owns
-    SHOPPING_CARTS ||--o{ CART_ITEMS : contains
-    BOOKS ||--o{ CART_ITEMS : "referenced by"
-    BOOKS ||--o{ BOOKS_CATEGORIES : "tagged with"
-    CATEGORIES ||--o{ BOOKS_CATEGORIES : groups
-    USERS ||--o{ ORDERS : places
-    ORDERS ||--o{ ORDER_ITEMS : contains
-    BOOKS ||--o{ ORDER_ITEMS : "referenced by"
+##  Getting Started
 
-    USERS {
-        bigint id PK
-        varchar email UK
-        varchar password
-        varchar first_name
-        varchar last_name
-        varchar shipping_address
-    }
-    ROLES {
-        bigint id PK
-        varchar name UK
-    }
-    BOOKS {
-        bigint id PK
-        varchar title
-        varchar author
-        varchar isbn UK
-        decimal price
-        varchar description
-        varchar cover_image
-        boolean is_deleted
-    }
-    CATEGORIES {
-        bigint id PK
-        varchar name
-        varchar description
-        boolean is_deleted
-    }
-    SHOPPING_CARTS {
-        bigint id PK
-        bigint user_id FK
-    }
-    CART_ITEMS {
-        bigint id PK
-        bigint shopping_cart_id FK
-        bigint book_id FK
-        int quantity
-    }
-    ORDERS {
-        bigint id PK
-        bigint user_id FK
-        varchar status
-        decimal total
-        datetime order_date
-        varchar shipping_address
-    }
-    ORDER_ITEMS {
-        bigint id PK
-        bigint order_id FK
-        bigint book_id FK
-        int quantity
-        decimal price
-    }
-```
-
-## Getting started
-
-### Option A — Docker Compose (recommended)
+### Option 1: Docker (recommended)
 
 Prerequisites: Docker and Docker Compose.
 
 ```bash
 git clone https://github.com/AliakseiS97/book-store-spring-boot.git
 cd book-store-spring-boot
-cp .env.sample .env      # then fill in the values (see below)
+cp .env.sample .env        # fill in your own values
 docker compose up --build
 ```
 
-The `.env` file drives both the MySQL container and the app. Variables (no real values shown):
+- API: `http://localhost:8088`
+- Swagger UI: `http://localhost:8088/swagger-ui/index.html`
+- MySQL from the host: `localhost:3307`
 
-| Variable | Meaning |
-| --- | --- |
-| `MYSQLDB_DATABASE` | Name of the schema MySQL creates and the app connects to. |
-| `MYSQLDB_USER` | Application MySQL user. |
-| `MYSQLDB_PASSWORD` | Password for `MYSQLDB_USER`. |
-| `MYSQLDB_ROOT_PASSWORD` | MySQL `root` password. |
-| `JWT_SECRET` | Secret used to sign/verify JWTs (HMAC-SHA). Use a long random string (32+ characters recommended). |
-| `JWT_EXPIRATION` | Token time-to-live in **milliseconds**. |
-| `MYSQLDB_LOCAL_PORT` | Host port mapped to MySQL (sample: `3307`). |
-| `MYSQLDB_DOCKER_PORT` | MySQL port inside the Docker network (sample: `3306`). |
-| `SPRING_LOCAL_PORT` | Host port mapped to the app (sample: `8088`). |
-| `SPRING_DOCKER_PORT` | App port inside the container (sample: `8080`). |
+Liquibase creates the schema and loads demo data on the first start.
 
-Once the containers are healthy, the API is reachable on the host at `SPRING_LOCAL_PORT`. With the sample values, Swagger UI is at:
+### Option 2: Run locally with Maven
 
-```
-http://localhost:8088/swagger-ui/index.html
-```
+Prerequisites: Java 17+, Maven 3.9+, a running MySQL 8 instance.
 
-### Option B — Local Maven run
-
-Prerequisites: JDK 17, Maven (or the bundled `./mvnw` wrapper), and a running MySQL 8.
-
-1. Create the database expected by `src/main/resources/application.properties` (default connection is `jdbc:mysql://localhost:3306/Book_store`, user `root`, password `root`). Adjust the properties if your local setup differs. Liquibase creates all tables on startup.
-2. Provide the JWT settings as environment variables — the properties reference `${JWT_SECRET}` and `${JWT_EXPIRATION}` with no defaults, so the app will not start without them:
-
-   ```bash
-   export JWT_SECRET="your-long-random-secret-string"
-   export JWT_EXPIRATION=3600000
-   ./mvnw spring-boot:run
-   ```
-
-   On Windows PowerShell:
-
-   ```powershell
-   $env:JWT_SECRET = "your-long-random-secret-string"
-   $env:JWT_EXPIRATION = 3600000
-   ./mvnw.cmd spring-boot:run
-   ```
-
-3. Swagger UI is then available at `http://localhost:8080/swagger-ui/index.html` (the app binds to `8080` locally).
-
-### Seeded data
-
-The Liquibase changelogs seed the two roles (`ROLE_USER`, `ROLE_ADMIN`) and one administrator account:
-
-- **Email:** `admin@example.com`
-- **Roles:** `ROLE_USER` + `ROLE_ADMIN`
-- **Password:** stored only as a BCrypt hash in `06-assign-roles-to-users.yaml`; the plaintext is not committed to the repository.
-
-New users can always be created through `POST /api/auth/registration`.
-
-#### Getting admin access
-
-Registration always grants `ROLE_USER`. To obtain an admin, register a user via `POST /api/auth/registration`, then grant the role directly in the database (tables `users` and `roles`, joined through `users_roles` with columns `user_id` and `role_id`):
-
-```sql
-INSERT INTO users_roles (user_id, role_id)
-SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ROLE_ADMIN'
-WHERE u.email = 'you@example.com';
-```
-
-## API documentation (Swagger)
-
-Interactive OpenAPI docs are served by springdoc at `/swagger-ui/index.html`, with the raw spec at `/v3/api-docs`. Authorize once with a Bearer token (from `/api/auth/login`) to call secured endpoints.
-
-![Swagger UI](docs/images/swagger.png)
-
-
-## Postman
-
-A ready-to-use collection lives at [`postman/book-store.postman_collection.json`](postman/book-store.postman_collection.json).
-
-1. In Postman, **Import** the file.
-2. Set the collection variable `baseUrl` to your environment: `http://localhost:8080` for a local Maven run, or `http://localhost:8088` (i.e. `SPRING_LOCAL_PORT`) for the Docker Compose setup. The default is `http://localhost:8080`.
-3. Send **Auth → Register** (optional) and then **Auth → Login**. The login request has a test script that reads `token` from the response and stores it in the `token` collection variable.
-4. All other requests inherit Bearer `{{token}}` auth at the collection level, so they are ready to send once you are logged in.
-
-## Challenges & solutions
-
-- **N+1 queries when loading the cart** → `ShoppingCartRepository.findByUserId` uses `@EntityGraph(attributePaths = {"cartItems", "cartItems.book"})` to fetch the cart, its items, and their books in a single query instead of one query per item.
-- **Entity `equals()`/`hashCode()` in collections** → entities that participate in associations/`Set`s (`ShoppingCart`, `CartItem`, `Order`, `OrderItem`) use `@EqualsAndHashCode(onlyExplicitlyIncluded = true)` with only the `id` included, plus `@ToString` exclusions on back-references. This keeps identity stable and avoids infinite recursion across bidirectional relationships.
-- **Order ownership security** → instead of loading an order and then checking its owner, the repository queries themselves are scoped by user id (`findAllByOrderIdAndOrderUserId`, `findByIdAndOrderIdAndOrderUserId`), so cross-user access simply returns nothing.
-- **Invalid order status transitions** → `OrderServiceImpl.validateStatusTransition` rejects moving a `DELIVERED` order to any other status by throwing `IllegalStateException`, which the global exception handler maps to `409 Conflict` (the same handler also turns "order from an empty cart" into `409`).
-- **Docker build issues** → the multi-stage Dockerfile explicitly copies `checkstyle.xml` into the build stage because Checkstyle runs at the `compile` phase and needs the config inside the build context; and the app requires `JWT_SECRET`/`JWT_EXPIRATION` to be supplied via `.env`, otherwise startup fails resolving the property placeholders.
-
-## Testing
-
-> Docker must be running for both commands: the repository tests use Testcontainers to start a real MySQL 8 container.
-
-Run the full test suite (unit, controller, and Testcontainers repository tests):
+Set the datasource in `application.properties` (or via `SPRING_DATASOURCE_*` environment variables) and provide `JWT_SECRET` and `JWT_EXPIRATION`, then:
 
 ```bash
-./mvnw test
+./mvnw spring-boot:run
 ```
 
-Run the full build — Checkstyle (bound to the `compile` phase) plus the same complete test suite:
+The API starts on `http://localhost:8080`.
+
+### Environment variables (`.env`)
+
+| Variable | Description |
+|----------|-------------|
+| `MYSQLDB_DATABASE`, `MYSQLDB_USER`, `MYSQLDB_PASSWORD`, `MYSQLDB_ROOT_PASSWORD` | MySQL credentials |
+| `MYSQLDB_LOCAL_PORT` / `MYSQLDB_DOCKER_PORT` | MySQL port on the host / inside Docker |
+| `SPRING_LOCAL_PORT` / `SPRING_DOCKER_PORT` | App port on the host / inside Docker |
+| `JWT_SECRET` | Secret key for signing tokens |
+| `JWT_EXPIRATION` | Token lifetime in milliseconds |
+
+### Running tests
 
 ```bash
 ./mvnw verify
 ```
 
-The suite includes:
+Integration tests start MySQL in a container via Testcontainers, so Docker must be running.
 
-- **Service unit tests** (Mockito): `BookServiceImplTest`, `CategoryServiceImplTest`, `ShoppingCartServiceImplTest`.
-- **Controller tests** (`@WebMvcTest` + MockMvc with mocked services): `BookControllerTest`, `CategoryControllerTest`, `ShoppingCartControllerTest`.
-- **Repository tests** (`@DataJpaTest` against a real MySQL via Testcontainers): `BookRepositoryTest`, `ShoppingCartRepositoryTest`.
+##  Authentication Flow
 
-CI runs `mvn --batch-mode --update-snapshots verify` on every push and pull request against a MySQL 8 service container (see `.github/workflows/ci.yml`).
+1. Register: `POST /api/auth/registration`
+2. Log in: `POST /api/auth/login` → receive a JWT
+3. Send the token on protected endpoints: `Authorization: Bearer <token>`
 
-## Video demo
+`JwtAuthenticationFilter` validates the token on every request, and `JwtUtil` handles generation, parsing and validation.
 
-`TODO:` add Loom link.
+## API Endpoints
 
-## Author
+### Authentication: `/api/auth`
+| Method | Endpoint        | Access | Description                 |
+|--------|-----------------|--------|-----------------------------|
+| POST   | `/registration` | Public | Register a new user         |
+| POST   | `/login`        | Public | Authenticate, returns a JWT |
 
-**Aliaksei Shyhala**
+### Books: `/api/books`
+| Method | Endpoint  | Access      | Description                                 |
+|--------|-----------|-------------|---------------------------------------------|
+| GET    | `/`       | USER, ADMIN | List all books (paginated)                  |
+| GET    | `/{id}`   | USER, ADMIN | Get a book by id                            |
+| GET    | `/search` | USER, ADMIN | Search by title / author / ISBN (paginated) |
+| POST   | `/`       | ADMIN       | Create a book                               |
+| PUT    | `/{id}`   | ADMIN       | Update a book                               |
+| DELETE | `/{id}`   | ADMIN       | Soft-delete a book                          |
 
-- GitHub: [AliakseiS97](https://github.com/AliakseiS97)
-- LinkedIn: [linkedin.com/in/aliaksei-shyhala](https://linkedin.com/in/aliaksei-shyhala)
+### Categories: `/api/categories`
+| Method | Endpoint      | Access      | Description               |
+|--------|---------------|-------------|---------------------------|
+| GET    | `/`           | USER, ADMIN | List categories           |
+| GET    | `/{id}`       | USER, ADMIN | Get a category            |
+| GET    | `/{id}/books` | USER, ADMIN | List books in a category  |
+| POST   | `/`           | ADMIN       | Create a category         |
+| PUT    | `/{id}`       | ADMIN       | Update a category         |
+| DELETE | `/{id}`       | ADMIN       | Soft-delete a category    |
+
+### Shopping Cart: `/api/cart`
+| Method | Endpoint                | Access | Description                     |
+|--------|-------------------------|--------|---------------------------------|
+| GET    | `/`                     | USER   | Get the current user's cart     |
+| POST   | `/`                     | USER   | Add a book to the cart          |
+| PUT    | `/cart-items/{cartItemId}` | USER | Update item quantity            |
+| DELETE | `/cart-items/{cartItemId}` | USER | Remove an item from the cart    |
+
+### Orders: `/api/orders`
+| Method | Endpoint                       | Access | Description                         |
+|--------|--------------------------------|--------|-------------------------------------|
+| POST   | `/`                            | USER   | Place an order from the cart        |
+| GET    | `/`                            | USER   | Get the current user's order history|
+| GET    | `/{orderId}/items`             | USER   | Get items of an order               |
+| GET    | `/{orderId}/items/{itemId}`    | USER   | Get a specific order item           |
+| PATCH  | `/{id}`                        | ADMIN  | Update order status                 |
+
+## Domain Model
+
+- **Book**: title, author, ISBN (unique), price, description, cover image, soft-delete flag; many-to-many with Category.
+- **Category**: name, description, soft-delete flag.
+- **User**: email (unique), password, first/last name, shipping address; many-to-many with Role.
+- **Role**: `ROLE_USER` / `ROLE_ADMIN`, implements `GrantedAuthority`.
+- **ShoppingCart** / **CartItem**: one cart per user, items reference books with a quantity.
+- **Order** / **OrderItem**: status, total, order date, shipping address; items store the price at the moment of purchase.
+
+## Project Structure
+
+```
+src/main/java/mate/academy
+├── config          # application configuration
+├── controller      # REST controllers
+├── dto             # request / response DTOs
+├── exception       # global exception handler & custom exceptions
+├── mapper          # MapStruct mappers
+├── model           # JPA entities
+├── repository      # Spring Data JPA repositories
+├── security        # SecurityConfig, JwtUtil, JwtAuthenticationFilter
+├── service         # business logic
+├── specification   # JPA Specifications for book search
+└── validation      # custom validators (@FieldMatch)
+src/main/resources
+└── db/changelog    # Liquibase migrations and seed data
+```
+
+## Postman Collection
+
+A ready-to-use collection is in [`postman/book-store.postman_collection.json`](postman/book-store.postman_collection.json).
+
+1. Import it into Postman.
+2. Set the `baseUrl` variable (`http://localhost:8088` or the demo URL).
+3. Run **Auth → Login**. The token is saved to the `token` variable and used by all other requests.
+
+## Challenges & Solutions
+
+- **Errors disguised as 403.** Any exception on a public endpoint (validation, bad credentials) was reported as `403 Forbidden`. Spring forwards errors to `/error`, which was not in `permitAll()`, so the real response was blocked. Opening `/error` and adding an `HttpStatusEntryPoint` made the API return correct statuses (`400`, `401`, `409`).
+- **Changing migrations safely.** Editing an already applied Liquibase changeset breaks startup with a checksum error. I learned to treat applied changesets as immutable and to add new ones, including a separate seed changeset for demo data.
+- **N+1 queries.** Loading books with categories and carts with items produced extra queries. I fixed this with `@EntityGraph` on repository methods.
+- **Deploying to a 1 GB instance.** The multi-stage Docker build runs Maven on the server and ran out of memory on an EC2 `t3.micro`. Adding a swap file solved it without upgrading the instance.
+- **A stuck database container.** The MySQL container stayed `unhealthy` after its process had died, and `depends_on: service_healthy` then blocked the app from starting. Reading the healthcheck log with `docker inspect` pointed to the cause, and restarting the container fixed it.
+- **Docker build context.** The first image failed because `checkstyle.xml` was excluded from the build context and JWT variables were missing in the container. I fixed `.dockerignore` and passed the variables through `.env`.
+
+## License
+
+Built for learning and portfolio purposes.
