@@ -31,3 +31,13 @@ services:
         "spring.datasource.username" : "$MYSQLDB_USER",
         "spring.datasource.password" : "$MYSQLDB_PASSWORD"
       }'
+
+  web:
+    depends_on:
+      - app
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - ${WEB_LOCAL_PORT:-3000}:80
+    environment:
+      API_UPSTREAM: app:${SPRING_DOCKER_PORT}
