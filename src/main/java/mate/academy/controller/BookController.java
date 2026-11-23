@@ -36,7 +36,6 @@ public class BookController {
                     + "and sorting via sort=field,asc or sort=field,desc"
     )
     @GetMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Page<BookDto> getAll(@ParameterObject Pageable pageable) {
         return bookService.getAll(pageable);
     }
@@ -47,7 +46,6 @@ public class BookController {
                     + "with pagination and sorting"
     )
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Page<BookDto> searchBooks(@ParameterObject BookSearchParametersDto params,
                                      @ParameterObject Pageable pageable) {
         return bookService.search(params, pageable);
@@ -55,7 +53,6 @@ public class BookController {
 
     @Operation(summary = "Get book by id")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public BookDto getBookById(@PathVariable Long id) {
         return bookService.getBookById(id);
     }
