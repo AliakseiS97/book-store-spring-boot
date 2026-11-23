@@ -2,4 +2,4 @@ target
 .git
 .idea
 .env
-*.iml
+*.imlfrontend

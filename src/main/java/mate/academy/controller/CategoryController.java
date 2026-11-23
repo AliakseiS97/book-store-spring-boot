@@ -46,7 +46,6 @@ public class CategoryController {
             description = "Returns paginated list of all categories"
     )
     @GetMapping
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public List<CategoryDto> getAll(@ParameterObject Pageable pageable) {
         return categoryService.findAll(pageable);
     }
@@ -56,7 +55,6 @@ public class CategoryController {
             description = "Returns category details for the provided id"
     )
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public CategoryDto getCategoryById(@PathVariable Long id) {
         return categoryService.getById(id);
     }
@@ -88,7 +86,6 @@ public class CategoryController {
             description = "Returns paginated list of books belonging to the category"
     )
     @GetMapping("/{id}/books")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public List<BookDtoWithoutCategoryIds> getBooksByCategoryId(
             @PathVariable Long id,
             @ParameterObject Pageable pageable) {
