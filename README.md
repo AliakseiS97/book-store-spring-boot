@@ -6,9 +6,9 @@ I built this project to practise how a real backend service is put together end 
 
 ## Live Demo
 
-The API is deployed on AWS EC2 and can be tried right away in Swagger UI:
+**Storefront:** https://d3kv138dmytzbd.cloudfront.net (React on S3 + CloudFront)
 
-http://56.228.31.17:8088/swagger-ui/index.html
+**API:** http://56.228.31.17:8088/swagger-ui/index.html (Spring Boot on EC2, Swagger UI)
 
 These are public test accounts, so feel free to try everything:
 
